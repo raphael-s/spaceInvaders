@@ -1,5 +1,5 @@
 from Tkinter import *
-import threading
+from random import randint
 
 WIDTH = 500
 HEIGHT = 750
@@ -24,44 +24,83 @@ class Board(Canvas):
     def initObj(self):
         self.spaceship = self.create_rectangle(0, HEIGHT-50, 50, HEIGHT, width=0, fill="green", tag="spaceship")
         self.alienList = []
-        self.alienList.append((self.create_rectangle(20, 20, 40, 40, width=0, fill="red", tag="alien"), Alien()))
         self.shotList = []
 
     def checkCollision(self):
         for alien in self.alienList:
-            if self.coords(alien[0])[0] == 440 or (self.coords(alien[0])[0] == 40 and self.coords(alien[0])[1] > 20):
-                if alien[1].x == 2 or alien[1].x == -2:
-                    alien[1].move_down()
-                else:
-                    alien[1].move_rev()
+            try:
+                if self.coords(alien[0])[0] == 440 or (self.coords(alien[0])[0] == 40 and self.coords(alien[0])[1] > 20):
+                    if alien[1].x == 2 or alien[1].x == -2:
+                        alien[1].move_down()
+                    else:
+                        alien[1].move_rev()
 
-            if self.coords(alien[0])[0] == 460 or (self.coords(alien[0])[0] == 20 and self.coords(alien[0])[1] > 20):
-                alien[1].move_down_rev()
+                if self.coords(alien[0])[0] == 460 or (self.coords(alien[0])[0] == 20 and self.coords(alien[0])[1] > 20):
+                    alien[1].move_down_rev()
+            except IndexError, e:
+                continue
+
+        for alien in self.alienList:
+            for shot in self.shotList:
+                try:
+                    shotx = int(self.coords(shot[0])[0])
+                    alienx = int(self.coords(alien[0])[0])
+                    for i in range(alienx, alienx + alien[1].sizex):
+                        if shotx <= i <= shotx + shot[1].sizex:
+                            try:
+                                shoty = int(self.coords(shot[0])[1])
+                                alieny = int(self.coords(alien[0])[1])
+                                for j in range(alieny, alieny + alien[1].sizey):
+                                    if shoty <= j <= shoty + shot[1].sizey:
+                                        try:
+                                            del self.alienList[self.alienList.index(alien)]
+                                            del self.shotList[self.shotList.index(shot)]
+                                        except ValueError, eee:
+                                            print "Value Error!"
+                                        print self.shotList
+                                        self.delete(shot[0])
+                                        self.delete(alien[0])
+                                        shoty = j + 1
+                            except IndexError, ee:
+                                continue
+                except IndexError, e:
+                    continue
 
     def doMove(self):
         for alien in self.alienList:
             self.move(alien[0], alien[1].x, alien[1].y)
 
         for shot in self.shotList:
-            self.move(shot[0], 0, -3)
+            self.move(shot[0], shot[1].movex, shot[1].movey)
+
+    def doShoot(self):
+        if len(self.alienList) >= 10:
+            rand = randint(1,10)
+            if rand == 5:
+                #randAlien = self.alienList.index(randint(0, len(self.alienList)-1))
+                shotPos = self.coords(randAlien)[0] + randAlien.sizex
+                self.shotList.append((self.create_rectangle(shotPos-1, self.coords(randAlien)[0] + randAlien.movey, shotPos+1, self.coords(randAlien)[0] + randAlien.movey + 5)))
 
     def moveRight(self, e):
-        self.move(self.spaceship, 5, 0)
+        if self.coords(self.spaceship)[0] + 55 <= WIDTH:
+            self.move(self.spaceship, 5, 0)
 
     def moveLeft(self, e):
-        self.move(self.spaceship, -5, 0)
+        if self.coords(self.spaceship)[0] - 5 >= 0:
+            self.move(self.spaceship, -5, 0)
 
     def shoot(self, e):
         shotPos = self.coords(self.spaceship)[0] + 25
-        self.shotList.append((self.create_rectangle(shotPos-2, HEIGHT-50, shotPos+2, HEIGHT-60, width=0, fill="blue", tag="shot"), Shot(shotPos)))
+        self.shotList.append((self.create_rectangle(shotPos-2, HEIGHT-50, shotPos+2, HEIGHT-60, width=0, fill="blue", tag="shot"), Shot(shotPos, 4, 10, 0, -3)))
 
     def onTimer(self):
         self.alienSpawn += 1
         if (self.alienSpawn > 30):
-            self.alienList.append((self.create_rectangle(20, 20, 40, 40, width=0, fill="red", tag="alien"), Alien()))
+            self.alienList.append((self.create_rectangle(-20, 20, 0, 40, width=0, fill="red", tag="alien"), Alien()))
             self.alienSpawn = 0
         self.checkCollision()
         self.doMove()
+        self.doShoot()
         self.after(DELAY, self.onTimer)
 
 class Game(Frame):
@@ -74,7 +113,6 @@ class Alien():
     sizex = 20
     sizey = 20
     def __init__(self):
-        self.alive = True
         self.x = 2
         self.y = 0
 
@@ -98,14 +136,13 @@ class Alien():
             self.x = -2
         self.y = 0
 
-    def die(self):
-        self.alive = False
-
 class Shot():
-    sizex = 10
-    sizey = 4
-    def __init__(self, pos):
+    def __init__(self, pos, sizex, sizey, movex, movey):
         self.x = pos
+        self.sizex = sizex
+        self.sizey = sizey
+        self.movex = movex
+        self.movey = movey
 
 def main():
 
