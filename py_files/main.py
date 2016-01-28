@@ -27,45 +27,52 @@ class Board(Canvas):
         self.shotList = []
 
     def checkCollision(self):
+        remShotList = []
+        remAlienList = []
         for alien in self.alienList:
-            if self.coords(alien[0])[0] == 440 or (self.coords(alien[0])[0] == 40 and self.coords(alien[0])[1] > 20):
+            if self.coords(alien[0])[0] == 440 or (self.coords(alien[0])[0] == 40 and self.coords(alien[0])[1] > 50):
                 if alien[1].x == 2 or alien[1].x == -2:
                     alien[1].move_down()
                 else:
                     alien[1].move_rev()
 
-            if self.coords(alien[0])[0] == 460 or (self.coords(alien[0])[0] == 20 and self.coords(alien[0])[1] > 20):
+            if self.coords(alien[0])[0] == 460 or (self.coords(alien[0])[0] == 20 and self.coords(alien[0])[1] > 50):
                 alien[1].move_down_rev()
 
         for shot in self.shotList:
-            if self.coords(shot[0])[1] == 0 or self.coords(shot[0])[1] == HEIGHT - 100:
-                print "remove"
-                del self.shotList[self.shotList.index(shot)]
-                self.delete(shot[0])
-                print len(self.shotList)
+            shotx = range(int(self.coords(shot[0])[0]), int(self.coords(shot[0])[0]) + shot[1].sizex)
+            shoty = range(int(self.coords(shot[0])[1]), int(self.coords(shot[0])[1]) + shot[1].sizey)
+            if self.coords(shot[0])[1] <= 0 or self.coords(shot[0])[1] >= HEIGHT:
+                remShotList.append(shot)
 
-            for i in range(int(self.coords(shot[0])[1]), int(self.coords(shot[0])[1]) + shot[1].sizey):
+            if not shot[0] in self.find_withtag("alienShot"):
                 for alien in self.alienList:
-                    prev
-                    if self.coords(alien[0])[1] <= i <= self.coords(alien[0])[1] + alien[1].sizey:
-                        if prev != i:
-                            print "ALIEN Y####"
-                            print self.coords(alien[0])[1]
-                            print i
-                            print self.coords(alien[0])[1] + alien[1].sizey
-                            print prev
-                            prev = i
-                            print prev
-                            print "ALIEN Y----"
-                #         for j in range(int(self.coords(shot[0])[0]), int(self.coords(shot[0])[0]) + shot[1].sizex):
-                #             if self.coords(alien[0])[0] <= j <= self.coords(alien[0])[0] + alien[1].sizex:
-                #                 print "remove"
-                #                 del self.shotList[self.shotList.index(shot)]
-                #                 self.delete(shot[0])
-                #                 del self.alienList[self.alienList.index(alien)]
-                #                 self.delete(alien[0])
-                #                 print len(self.shotList)
-                #                 continue
+                    alienx = range(int(self.coords(alien[0])[0]), int(self.coords(alien[0])[0] + alien[1].sizex + 1))
+                    alieny = range(int(self.coords(alien[0])[1]), int(self.coords(alien[0])[1] + alien[1].sizey + 1))
+                    for x in shotx:
+                        if x in alienx:
+                            for y in shoty:
+                                if y in alieny and x in alienx:
+                                    remShotList.append(shot)
+                                    remAlienList.append(alien)
+
+        if len(remAlienList) > 0:
+            remAlienList = set(remAlienList)
+            self.remAlien(remAlienList)
+
+        if len(remShotList) > 0:
+            remShotList = set(remShotList)
+            self.remShots(remShotList)
+
+    def remShots(self, elements):
+        for item in elements:
+            del self.shotList[self.shotList.index(item)]
+            self.delete(item[0])
+
+    def remAlien(self, elements):
+        for item in elements:
+            del self.alienList[self.alienList.index(item)]
+            self.delete(item[0])
 
     def doMove(self):
         for alien in self.alienList:
@@ -82,8 +89,6 @@ class Board(Canvas):
                 shotPosx = self.coords(randAlien[0])[0] + (randAlien[1].sizex/2) -1
                 shotPosy = self.coords(randAlien[0])[1] + randAlien[1].sizey
                 self.shotList.append((self.create_rectangle(shotPosx, shotPosy, shotPosx+2, shotPosy+4, width=1, tag="alienShot"), Shot(shotPosx, 2, 4, 0, 3)))
-                print "add"
-                print len(self.shotList)
 
     def moveRight(self, e):
         if self.coords(self.spaceship)[0] + 55 <= WIDTH:
@@ -100,7 +105,7 @@ class Board(Canvas):
     def onTimer(self):
         self.alienSpawn += 1
         if (self.alienSpawn > 30):
-            self.alienList.append((self.create_rectangle(-20, 20, 0, 40, width=0, fill="red", tag="alien"), Alien()))
+            self.alienList.append((self.create_rectangle(-20, 50, 0, 70, width=0, fill="red", tag="alien"), Alien()))
             self.alienSpawn = 0
         self.checkCollision()
         self.doMove()
