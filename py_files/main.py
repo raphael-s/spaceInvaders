@@ -1,5 +1,6 @@
 from Tkinter import *
 from random import randint
+import tkFont
 
 WIDTH = 500
 HEIGHT = 750
@@ -14,7 +15,7 @@ class Board(Canvas):
 
     def initGame(self):
         self.alienSpawn = 0
-        self.spaceMove = 0
+        self.shootCooldown = 0
         self.bind_all("<a>", self.moveLeft)
         self.bind_all("<d>", self.moveRight)
         self.bind_all("<space>", self.shoot)
@@ -22,6 +23,9 @@ class Board(Canvas):
         self.after(DELAY, self.onTimer)
 
     def initObj(self):
+        self.menu = []
+        self.menu.append(self.create_rectangle(0, 0, WIDTH, 30, width=0, fill="grey", tag="menuBar"))
+        self.menu.append(self.create_text(5, 5, text="SpaceInvaders", anchor="nw", font=tkFont.Font(size="20")))
         self.spaceship = self.create_rectangle(0, HEIGHT-50, 50, HEIGHT, width=0, fill="green", tag="spaceship")
         self.alienList = []
         self.shotList = []
@@ -82,6 +86,8 @@ class Board(Canvas):
             self.move(shot[0], shot[1].movex, shot[1].movey)
 
     def doShoot(self):
+        if self.shootCooldown > 0:
+            self.shootCooldown -= 1
         if len(self.alienList) >= 10:
             rand = randint(1,100)
             if rand == 1:
@@ -99,8 +105,10 @@ class Board(Canvas):
             self.move(self.spaceship, -5, 0)
 
     def shoot(self, e):
-        shotPos = self.coords(self.spaceship)[0] + 25
-        self.shotList.append((self.create_rectangle(shotPos-2, HEIGHT-50, shotPos+2, HEIGHT-60, width=0, fill="blue", tag="SpaceShipShot"), Shot(shotPos, 4, 10, 0, -3)))
+        if self.shootCooldown == 0:
+            shotPos = self.coords(self.spaceship)[0] + 25
+            self.shotList.append((self.create_rectangle(shotPos-2, HEIGHT-50, shotPos+2, HEIGHT-60, width=0, fill="blue", tag="SpaceShipShot"), Shot(shotPos, 4, 10, 0, -3)))
+            self.shootCooldown = 50
 
     def onTimer(self):
         self.alienSpawn += 1
@@ -154,10 +162,10 @@ class Shot():
         self.movey = movey
 
 def main():
-
     root = Tk()
+    root.title("Space Invaders")
     game = Game()
-    root.mainloop()  
+    root.mainloop()
 
 
 if __name__ == '__main__':
