@@ -1,6 +1,7 @@
 from Tkinter import *
 from random import randint
 import tkFont
+from alien import Alien
 
 WIDTH = 500
 HEIGHT = 750
@@ -14,6 +15,9 @@ class Board(Canvas):
         self.pack()
 
     def initGame(self):
+        self.score = IntVar(self, 0)
+        self.level = IntVar(self, 1)
+        self.health = 3
         self.alienSpawn = 0
         self.shootCooldown = 0
         self.bind_all("<a>", self.moveLeft)
@@ -24,15 +28,24 @@ class Board(Canvas):
 
     def initObj(self):
         self.menu = []
+        menuFont = tkFont.Font(size="20")
+        #self.spaceShipImage = imageTK.PhotoImage(file="../gfx/green.png")
         self.menu.append(self.create_rectangle(0, 0, WIDTH, 30, width=0, fill="grey", tag="menuBar"))
-        self.menu.append(self.create_text(5, 5, text="SpaceInvaders", anchor="nw", font=tkFont.Font(size="20")))
-        self.spaceship = self.create_rectangle(0, HEIGHT-50, 50, HEIGHT, width=0, fill="green", tag="spaceship")
+        self.menu.append(self.create_text(5, 5, text="Score: ", anchor="nw", font=menuFont, tag="scoreLabel"))
+        self.menu.append(self.create_text(self.coords(self.find_withtag("scoreLabel"))[0]+65, 5, text=str(self.score.get()), anchor="nw", font=menuFont, tag="score"))
+        self.menu.append(self.create_text(205, 5, text="Level: ", anchor="nw", font=menuFont, tag="levelLabel"))
+        self.menu.append(self.create_text(self.coords(self.find_withtag("levelLabel"))[0]+63, 5, text=str(self.level.get()), anchor="nw", font=menuFont, tag="level"))
+        for i in range(self.health):
+            count = i + 1
+            self.menu.append(self.create_rectangle(WIDTH - (25 * count), 5, WIDTH - (25 * count) + 20, 25, fill="red", tag="health"+str(count)))
+        self.spaceship = self.create_rectangle(0, HEIGHT-50, 50, HEIGHT, tag="spaceship", fill="green")
         self.alienList = []
         self.shotList = []
 
     def checkCollision(self):
         remShotList = []
         remAlienList = []
+        remHealthList = []
         for alien in self.alienList:
             if self.coords(alien[0])[0] == 440 or (self.coords(alien[0])[0] == 40 and self.coords(alien[0])[1] > 50):
                 if alien[1].x == 2 or alien[1].x == -2:
@@ -60,6 +73,16 @@ class Board(Canvas):
                                     remShotList.append(shot)
                                     remAlienList.append(alien)
 
+            elif shot[0] in self.find_withtag("alienShot"):
+                shipx = range(int(self.coords(self.spaceship)[0]), int(self.coords(self.spaceship)[0]) + 50)
+                shipy = range(int(self.coords(self.spaceship)[1]), int(self.coords(self.spaceship)[1]) + 50)
+                for x in shotx:
+                    if x in shipx:
+                        for y in shoty:
+                            if y in shipy:
+                                remShotList.append(shot)
+                                remHealthList.append(self.find_withtag("health"+str(self.health)))
+
         if len(remAlienList) > 0:
             remAlienList = set(remAlienList)
             self.remAlien(remAlienList)
@@ -67,6 +90,10 @@ class Board(Canvas):
         if len(remShotList) > 0:
             remShotList = set(remShotList)
             self.remShots(remShotList)
+
+        if len(remHealthList) > 0:
+            remHealthList = set(remHealthList)
+            self.remHealth(remHealthList)
 
     def remShots(self, elements):
         for item in elements:
@@ -77,6 +104,13 @@ class Board(Canvas):
         for item in elements:
             del self.alienList[self.alienList.index(item)]
             self.delete(item[0])
+            self.score.set(self.score.get()+1)
+            self.itemconfigure(self.find_withtag("score"), text=self.score.get())
+
+    def remHealth(self, elements):
+        for item in elements:
+            self.delete(item)
+            self.health -= 1
 
     def doMove(self):
         for alien in self.alienList:
@@ -104,13 +138,30 @@ class Board(Canvas):
         if self.coords(self.spaceship)[0] - 5 >= 0:
             self.move(self.spaceship, -5, 0)
 
+    def onChangeScore(self, arg1, arg2, arg3):
+        self.itemconfigure(self.find_withtag("score"), text=self.score.get())
+
+    def onChangeLevel(self, arg1, arg2, arg3):
+        self.itemconfigure(self.find_withtag("level"), text=self.level.get())
+
     def shoot(self, e):
         if self.shootCooldown == 0:
             shotPos = self.coords(self.spaceship)[0] + 25
             self.shotList.append((self.create_rectangle(shotPos-2, HEIGHT-50, shotPos+2, HEIGHT-60, width=0, fill="blue", tag="SpaceShipShot"), Shot(shotPos, 4, 10, 0, -3)))
             self.shootCooldown = 50
 
+    def checkHealth(self):
+        if not self.health > 0:
+            self.create_text(WIDTH/2, HEIGHT/2 - 100, text="Game Over", font=tkFont.Font(size="70"), tag="GameOver")
+            #self.create_text(WIDTH/2, HEIGHT/2, text="Score: " + str(self.score.get()), font=tkFont.Font(size="70"), tag="finalScore")
+            self.unbind_all("<a>")
+            self.unbind_all("<d>")
+            self.unbind_all("<space>")
+        else:
+            self.timer = self.after(DELAY, self.onTimer)
+
     def onTimer(self):
+        self.checkHealth()
         self.alienSpawn += 1
         if (self.alienSpawn > 30):
             self.alienList.append((self.create_rectangle(-20, 50, 0, 70, width=0, fill="red", tag="alien"), Alien()))
@@ -118,40 +169,12 @@ class Board(Canvas):
         self.checkCollision()
         self.doMove()
         self.doShoot()
-        self.after(DELAY, self.onTimer)
 
 class Game(Frame):
     def __init__(self):
         Frame.__init__(self)
         self.board = Board()
         self.pack()
-
-class Alien():
-    sizex = 20
-    sizey = 20
-    def __init__(self):
-        self.x = 2
-        self.y = 0
-
-    def move_down(self):
-        if self.x > 0:
-            self.x = 1
-        else:
-            self.x = -1
-        self.y = 1
-
-    def move_down_rev(self):
-        if self.x > 0:
-            self.x = -1
-        else:
-            self.x = 1
-
-    def move_rev(self):
-        if self.x > 0:
-            self.x = 2
-        else:
-            self.x = -2
-        self.y = 0
 
 class Shot():
     def __init__(self, pos, sizex, sizey, movex, movey):
