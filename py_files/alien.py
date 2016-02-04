@@ -1,26 +1,27 @@
 class Alien():
-    sizex = 20
-    sizey = 20
-    def __init__(self):
-        self.x = 2
-        self.y = 0
+    def __init__(self, sizex, sizey, movex, movey, id):
+        self.sizex = sizex
+        self.sizey = sizey
+        self.movex = movex
+        self.movey = movey
+        self.id = id
 
     def move_down(self):
-        if self.x > 0:
-            self.x = 1
+        if self.movex > 0:
+            self.movex = 1
         else:
-            self.x = -1
-        self.y = 1
+            self.movex = -1
+        self.movey = 1
 
     def move_down_rev(self):
-        if self.x > 0:
-            self.x = -1
+        if self.movex > 0:
+            self.movex = -1
         else:
-            self.x = 1
+            self.movex = 1
 
     def move_rev(self):
-        if self.x > 0:
-            self.x = 2
+        if self.movex > 0:
+            self.movex = 2
         else:
-            self.x = -2
-        self.y = 0
+            self.movex = -2
+        self.movey = 0
