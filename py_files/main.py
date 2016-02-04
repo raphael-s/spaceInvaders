@@ -1,8 +1,8 @@
-from Tkinter import Canvas, IntVar, Frame, Tk
+from Tkinter import Canvas, Frame, Tk
 from random import randint
 import tkFont
 import os
-from PIL import ImageTk, Image
+from PIL import ImageTk
 from alien import Alien
 
 
@@ -34,8 +34,16 @@ class Board(Canvas):
     def initObj(self):
         self.menu = []
         menuFont = tkFont.Font(size="20")
-        #healthimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/blue.png")
-        #self.healthimg = healthimg
+        healthimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/heart.png")
+        self.healthimg = healthimg
+        alienGreen = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/green.png")
+        self.alienGreen = alienGreen
+        shipimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/space_ship.png")
+        self.shipimg = shipimg
+        bg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/bg.png")
+        self.bg = bg
+        self.create_image(0, -50, image=self.bg, anchor="nw", tag="bg1")
+        self.create_image(0, -850, image=self.bg, anchor="nw", tag="bg2")
         self.menu.append(self.create_rectangle(0, 0, WIDTH, 30, width=0, fill="grey", tag="menuBar"))
         self.menu.append(self.create_text(5, 5, text="Score: ", anchor="nw", font=menuFont, tag="scoreLabel"))
         self.menu.append(self.create_text(self.coords(self.find_withtag("scoreLabel"))[0] + 65, 5, text=str(self.score), anchor="nw", font=menuFont, tag="score"))
@@ -43,12 +51,8 @@ class Board(Canvas):
         self.menu.append(self.create_text(self.coords(self.find_withtag("levelLabel"))[0] + 63, 5, text=str(self.level), anchor="nw", font=menuFont, tag="level"))
         for i in range(self.health):
             count = i + 1
-            #self.menu.append(self.create_image(WIDTH - (25 * count), 5, image=healthimg, tag="health" + str(count)))
-            self.menu.append(self.create_rectangle(WIDTH - (25 * count), 5, WIDTH - (25 * count) + 20, 25, fill="red", tag="health" + str(count)))
-        #img = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/blue2.png")
-        self.spaceship = self.create_rectangle(0, HEIGHT-50, 50, HEIGHT, tag="spaceship", fill="green")
-        #self.spaceship = self.create_image(WIDTH / 2 + 25, HEIGHT - 50, image=img, tag="spaceship")
-        #self.spaceimg = img
+            self.menu.append(self.create_image(WIDTH - (25 * count), 6, image=healthimg, tag="health" + str(count), anchor="nw"))
+        self.spaceship = self.create_image(WIDTH / 2 + 25, HEIGHT - 50, image=self.shipimg)
         self.alienList = []
         self.shotList = []
 
@@ -129,6 +133,19 @@ class Board(Canvas):
         for shot in self.shotList:
             self.move(shot[0], shot[1].movex, shot[1].movey)
 
+        bg1y = self.coords(self.find_withtag("bg1"))[1]
+        bg2y = self.coords(self.find_withtag("bg2"))[1]
+
+        if bg1y >= HEIGHT:
+            self.move(self.find_withtag("bg1"), 0, -1550)
+        else:
+            self.move(self.find_withtag("bg1"), 0, 10)
+
+        if bg2y >= HEIGHT:
+            self.move(self.find_withtag("bg2"), 0, -1550)
+        else:
+            self.move(self.find_withtag("bg2"), 0, 10)
+
     def doShoot(self):
         if self.shootCooldown > 0:
             self.shootCooldown -= 1
@@ -168,14 +185,14 @@ class Board(Canvas):
         if self.spawnDelay == 0:
             self.spawnDelay = 30
             if self.alienSpawnCount > 0:
-                self.alienList.append((self.create_rectangle(-20, 50, 0, 70, width=0, fill="red", tag="alien"), Alien()))
+                self.alienList.append((self.create_image(-32, 50, image=self.alienGreen, tag="alien"), Alien()))
                 self.alienSpawnCount -= 1
 
             if self.alienSpawnCount == 0 and len(self.find_withtag("alien")) == 0:
                 self.level += 1
                 if self.health < 5:
                     self.health += 1
-                    self.menu.append(self.create_rectangle(WIDTH - (25 * self.health), 5, WIDTH - (25 * self.health) + 20, 25, fill="red", tag="health" + str(self.health)))
+                    self.menu.append(self.create_image(WIDTH - (25 * self.health), 6, image=healthimg, tag="health" + str(self.health), anchor="nw"))
                 self.itemconfigure(self.find_withtag("level"), text=self.level)
                 self.alienSpawnCount = (self.level * 8)
         else:
