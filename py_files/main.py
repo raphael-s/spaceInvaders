@@ -10,6 +10,8 @@ from alien import Alien
 
 from shot import Shot
 
+from drop import Drop
+
 import tkFont
 
 # Size of the pitch
@@ -92,12 +94,14 @@ class Board(Canvas):
         alienGreen = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/green.png")
         shipimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/space_ship.png")
         bgimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/bg.png")
+        dropimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/crate.png")
         self.healthimg = healthimg
         self.xhealthimg = xhealthimg
         self.empty_heartimg = empty_heartimg
         self.alienGreen = alienGreen
         self.shipimg = shipimg
         self.bgimg = bgimg
+        self.dropimg = dropimg
 
         # Create background images
         self.bg = []
@@ -106,13 +110,13 @@ class Board(Canvas):
 
         # Add menu bar and all of its elements to the board
         self.menu = []
-        menuFont = tkFont.Font(size="20", family="Helvetica")
+        self.menuFont = tkFont.Font(size="20", family="Helvetica")
 
         self.menu.append(self.create_rectangle(0, 0, WIDTH, MENUBARSIZE, width=0, fill="grey", tag="menuBar"))
-        self.menu.append(self.create_text(5, 5, text="Score: ", anchor="nw", font=menuFont, tag="scoreLabel"))
-        self.menu.append(self.create_text(self.getx(self.find_withtag("scoreLabel")) + 65, 5, text=str(self.score), anchor="nw", font=menuFont, tag="score"))
-        self.menu.append(self.create_text(205, 5, text="Level: ", anchor="nw", font=menuFont, tag="levelLabel"))
-        self.menu.append(self.create_text(self.getx(self.find_withtag("levelLabel")) + 63, 5, text=str(self.level), anchor="nw", font=menuFont, tag="level"))
+        self.menu.append(self.create_text(5, 5, text="Score: ", anchor="nw", font=self.menuFont, tag="scoreLabel"))
+        self.menu.append(self.create_text(self.getx(self.find_withtag("scoreLabel")) + 65, 5, text=str(self.score), anchor="nw", font=self.menuFont, tag="score"))
+        self.menu.append(self.create_text(205, 5, text="Level: ", anchor="nw", font=self.menuFont, tag="levelLabel"))
+        self.menu.append(self.create_text(self.getx(self.find_withtag("levelLabel")) + 63, 5, text=str(self.level), anchor="nw", font=self.menuFont, tag="level"))
         for j in range(5):
             self.menu.append(self.create_image(WIDTH - (25 * (j + 1)), 6, image=self.empty_heartimg, tag="empty_heart", anchor="nw"))
         for i in range(self.health):
@@ -123,6 +127,7 @@ class Board(Canvas):
         self.spaceship = self.create_image(WIDTH / 2 - SHIPSIZE / 2, HEIGHT - SHIPSIZE - 20, image=self.shipimg, anchor="nw")
         self.alienList = []
         self.shotList = []
+        self.dropList = []
 
     # Check collision between all relevant objects on the field
     def checkCollision(self):
@@ -132,11 +137,26 @@ class Board(Canvas):
         remAlienList = []
         remHealthList = []
         remxHealthList = []
+        remDropList = []
+
+        # Check if drop has reached the bottom of the pitch.
+        # Also check if the drop has collided with the ship
+        for drop in self.dropList:
+            if self.gety(drop.id) >= HEIGHT - drop.sizey - 20:
+                drop.movey = 0
+            spacex = range(int(self.getx(self.spaceship)), int(self.getx(self.spaceship) + SHIPSIZE))
+            for dropx in range(int(self.getx(drop.id)), int(self.getx(drop.id) + drop.sizex)):
+                if dropx in spacex and drop.movey == 0:
+                    remDropList.append(drop)
+                elif dropx in spacex:
+                    for dropy in range(int(self.gety(drop.id)), int(self.gety(drop.id) + drop.sizey)):
+                        if dropy >= self.gety(self.spaceship):
+                            remDropList.append(drop)
 
         # Check if aliens reached the bottom of the pitch/the spaceship
         if len(self.alienList) > 0:
             if self.gety(self.alienList[0].id) + self.alienList[0].sizey >= self.gety(self.spaceship):
-                if len(self.find_withtag("xhealth1")) > 0:
+                if self.xhealth > 0:
                     remxHealthList.append(self.find_withtag("xhealth" + str(self.xhealth)))
                 else:
                     remHealthList.append(self.find_withtag("health" + str(self.health)))
@@ -186,7 +206,7 @@ class Board(Canvas):
                         for y in shoty:
                             if y in shipy:
                                 remShotList.append(shot)
-                                if len(self.find_withtag("xhealth1")) > 0:
+                                if self.xhealth > 0:
                                     remxHealthList.append(self.find_withtag("xhealth" + str(self.xhealth)))
                                 else:
                                     remHealthList.append(self.find_withtag("health" + str(self.health)))
@@ -215,6 +235,10 @@ class Board(Canvas):
             remxHealthList = set(remxHealthList)
             self.remxHealth(remxHealthList)
 
+        if len(remDropList) > 0:
+            remDropList = set(remDropList)
+            self.remDrop(remDropList)
+
     # Method to remove all the shots in remList
     def remShots(self, remList):
         for item in remList:
@@ -240,6 +264,14 @@ class Board(Canvas):
     def remxHealth(self, remList):
         for item in remList:
             self.delete(item)
+            self.xhealth -= 1
+
+    def remDrop(self, remList):
+        for item in remList:
+            del self.dropList[self.dropList.index(item)]
+            self.delete(item.id)
+            self.randUpgrade()
+
 
     # Method called by the timer. Moves all the moving objs on the pitch around
     def doMove(self):
@@ -259,6 +291,9 @@ class Board(Canvas):
             else:
                 self.move(bg, 0, 1)
 
+        for drop in self.dropList:
+            self.move(drop.id, drop.movex, drop.movey)
+
         # Reduce shoot cooldown for spaceship by every tick
         if self.shootCooldown > 0:
             self.shootCooldown -= 1
@@ -267,7 +302,7 @@ class Board(Canvas):
     def doShoot(self):
         # Get ranom number to decide if aliens shoot in this tick.
         # The higher the level the smaller the range for the random number
-        rand = randint(1, int(100 / self.level * 1.5))
+        rand = randint(1, int(100 / self.level * 2))
         if rand == 1:
             if len(self.alienList) > 0:
                 randAlien = self.alienList[randint(0, len(self.alienList) - 1)]
@@ -328,22 +363,36 @@ class Board(Canvas):
         for item in self.find_withtag("popUp"):
             self.delete(item)
 
-    def randLevelUpEffect(self):
+    def shipPopUp(self, text):
+        self.remShipPopUp()
+        self.shipPopUpList = []
+        self.shipPopUpFont = tkFont.Font(size="20")
+        popx = self.getx(self.spaceship) + SHIPSIZE + 10
+        popy = HEIGHT - SHIPSIZE - 40
+        self.shipPopUpList.append(self.create_rectangle(popx, popy, popx + 90, popy + 30, fill="white", width=0, tag="shipPopUp"))
+        self.shipPopUpList.append(self.create_text(popx + 5, popy + 5, text=text, font=self.shipPopUpFont, tag="shipPopUp", anchor="nw"))
+        self.after(1000, self.remShipPopUp)
+
+    def remShipPopUp(self):
+        for item in self.find_withtag("shipPopUp"):
+            self.delete(item)
+
+    def randUpgrade(self):
         randNum = randint(1, 2)
         popText = ""
         if randNum == 1:
-            if self.xhealth < 4:
+            if self.xhealth < 3:
                 self.xhealth += 1
                 self.menu.append(self.create_image(WIDTH - (25 * 5 + (25 * self.xhealth)), 6, image=self.xhealthimg, tag="xhealth" + str(self.xhealth), anchor="nw"))
-                popText = "Extra Life"
+                popText = "+1 Life"
             else:
-                self.randLevelUpEffect()
+                self.randUpgrade()
         elif randNum == 2:
             self.score += 10 * self.level
             self.itemconfigure(self.find_withtag("score"), text=self.score)
-            popText = "Free Points"
+            popText = "++ Score"
         if not popText == "":
-            self.popUpText(popText)
+            self.shipPopUp(popText)
 
     # Method to add new aliens to the board.
     def spawnAliens(self):
@@ -363,9 +412,16 @@ class Board(Canvas):
                     self.menu.append(self.create_image(WIDTH - (25 * self.health), 6, image=self.healthimg, tag="health" + str(self.health), anchor="nw"))
                 self.itemconfigure(self.find_withtag("level"), text=self.level)
                 self.alienSpawnCount = (12 + (self.level * 6))
-                self.randLevelUpEffect()
+                self.popUpText("Level " + str(self.level))
+                # self.randUpgrade()
         else:
             self.spawnDelay -= 1
+
+    # Randomly spawns drops
+    def spawnDrop(self):
+        if randint(1, 50) == 1:
+            randx = randint(10, WIDTH - 30)
+            self.dropList.append(Drop(20, 20, 0, 5, self.create_image(randx, MENUBARSIZE, image=self.dropimg, anchor="nw", tag="drop")))
 
     # Timer method, always gets called again after DELAY from checkHealth method
     # until the game has finished
@@ -374,6 +430,7 @@ class Board(Canvas):
         self.checkCollision()
         self.doMove()
         self.spawnAliens()
+        self.spawnDrop()
 
 
 # Main class of game. Creates new canvas from class Board
