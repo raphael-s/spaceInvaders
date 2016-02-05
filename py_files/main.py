@@ -272,7 +272,6 @@ class Board(Canvas):
             self.delete(item.id)
             self.randUpgrade()
 
-
     # Method called by the timer. Moves all the moving objs on the pitch around
     def doMove(self):
         # Move all the aliens on the pitch according to their movement directions
@@ -291,6 +290,7 @@ class Board(Canvas):
             else:
                 self.move(bg, 0, 1)
 
+        # Moves the drop crate downwards
         for drop in self.dropList:
             self.move(drop.id, drop.movex, drop.movey)
 
@@ -339,7 +339,6 @@ class Board(Canvas):
     # so calls the onTimer method again after DELAY.
     # If the player has no health left, the game ends and the game over screen appears.
     def checkHealth(self):
-
         if not self.health > 0:
             self.gameoverfont = tkFont.Font(size="70")
             self.create_rectangle(BORDER, HEIGHT / 2 - (BORDER * 3), WIDTH - BORDER, HEIGHT / 2 + BORDER, fill="white", tag="gameOverBg", width=0)
@@ -352,6 +351,9 @@ class Board(Canvas):
             self.doShoot()
             self.timer = self.after(DELAY, self.onTimer)
 
+    # Method that creates a popup display that is then removed again by
+    # calling remPopUp.
+    # Method is used to display level ups
     def popUpText(self, text):
         self.popUpList = []
         self.popUpFont = tkFont.Font(size="50")
@@ -359,10 +361,13 @@ class Board(Canvas):
         self.popUpList.append(self.create_text(WIDTH / 2, HEIGHT / 2, text=text, font=self.popUpFont, tag="popUp"))
         self.after(1500, self.remPopUp)
 
+    # Method that removes the popup text
     def remPopUp(self):
         for item in self.find_withtag("popUp"):
             self.delete(item)
 
+    # Method to create a small popup message at the location of the spacehship.
+    # Message gets automatically removed by calling remShipPopUp method
     def shipPopUp(self, text):
         self.remShipPopUp()
         self.shipPopUpList = []
@@ -373,10 +378,13 @@ class Board(Canvas):
         self.shipPopUpList.append(self.create_text(popx + 5, popy + 5, text=text, font=self.shipPopUpFont, tag="shipPopUp", anchor="nw"))
         self.after(1000, self.remShipPopUp)
 
+    # Method to remove the message created by shipPopUp
     def remShipPopUp(self):
         for item in self.find_withtag("shipPopUp"):
             self.delete(item)
 
+    # Method called if the spaceship collides with a crate.
+    # Randomly gets the player some score points or an extra life
     def randUpgrade(self):
         randNum = randint(1, 2)
         popText = ""
