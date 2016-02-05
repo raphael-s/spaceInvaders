@@ -43,6 +43,8 @@ class Board(Canvas):
     # Shows an info text about the level system before game starts
     def initInfoScreen(self):
         self.infoList = []
+        green_bigimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/green_big.png")
+        self.green_bigimg = green_bigimg
         self.titleFont = tkFont.Font(size="60")
         self.smallTitleFont = tkFont.Font(size="40")
         self.listHeaderFont = tkFont.Font(size="25")
@@ -60,13 +62,13 @@ class Board(Canvas):
         self.infoList.append(self.create_text(130, 400, text="- 1 extra Life", font=self.listFont, anchor="nw"))
         self.infoList.append(self.create_text(130, 430, text="- Some free score points", font=self.listFont, anchor="nw"))
         self.infoList.append(self.create_text(WIDTH / 2, HEIGHT - BORDER * 2, text="Press <space> to start the game", font=self.startGameFont))
+        self.infoList.append(self.create_image(WIDTH / 2, 540, image=self.green_bigimg))
         self.bind_all("<space>", self.startGame)
 
     # Gets called by user pressing space on info screen. Initializes the game
     def startGame(self, arg1):
         self.unbind_all("<space>")
-        for item in self.infoList:
-            self.delete(item)
+        self.delete("all")
         self.initGame()
 
     # Init vars for the game and bind the keys.
@@ -302,7 +304,7 @@ class Board(Canvas):
     def doShoot(self):
         # Get ranom number to decide if aliens shoot in this tick.
         # The higher the level the smaller the range for the random number
-        rand = randint(1, int(100 / self.level * 2))
+        rand = randint(1, int(100 / (self.level * 2)))
         if rand == 1:
             if len(self.alienList) > 0:
                 randAlien = self.alienList[randint(0, len(self.alienList) - 1)]
@@ -341,12 +343,16 @@ class Board(Canvas):
     def checkHealth(self):
         if not self.health > 0:
             self.gameoverfont = tkFont.Font(size="70")
+            self.restartfont = tkFont.Font(size="35")
             self.create_rectangle(BORDER, HEIGHT / 2 - (BORDER * 3), WIDTH - BORDER, HEIGHT / 2 + BORDER, fill="white", tag="gameOverBg", width=0)
             self.create_text(WIDTH / 2, HEIGHT / 2 - (BORDER * 2), text="Game Over", font=self.gameoverfont, tag="gameOverText")
             self.create_text(WIDTH / 2, HEIGHT / 2, text="Score: " + str(self.score), font=self.gameoverfont, tag="finalScore")
+            self.create_rectangle(BORDER, HEIGHT - (BORDER * 2), WIDTH - BORDER, HEIGHT - BORDER, fill="white", tag="startNewGame", width=0)
+            self.create_text(WIDTH / 2, HEIGHT - 75, text="Press <space> to restart", font=self.restartfont, tag="restartGameText")
             self.unbind_all("<a>")
             self.unbind_all("<d>")
             self.unbind_all("<space>")
+            self.bind_all("<space>", self.startGame)
         else:
             self.doShoot()
             self.timer = self.after(DELAY, self.onTimer)
@@ -427,7 +433,7 @@ class Board(Canvas):
 
     # Randomly spawns drops
     def spawnDrop(self):
-        if randint(1, 50) == 1:
+        if randint(1, 500) == 1:
             randx = randint(10, WIDTH - 30)
             self.dropList.append(Drop(20, 20, 0, 5, self.create_image(randx, MENUBARSIZE, image=self.dropimg, anchor="nw", tag="drop")))
 
