@@ -54,11 +54,9 @@ class Board(Canvas):
         self.infoList.append(self.create_text(130, 250, text="- The amount of aliens will double", font=self.listFont, anchor="nw"))
         self.infoList.append(self.create_text(130, 280, text="- The aliens will shoot more", font=self.listFont, anchor="nw"))
         self.infoList.append(self.create_text(130, 310, text="- You will get 1 extra life", font=self.listFont, anchor="nw"))
-        self.infoList.append(self.create_text(120, 360, text="And one of the following:", font=self.listSmallHeaderFont, anchor="nw"))
-        self.infoList.append(self.create_text(130, 400, text="- You will be able to shoot faster", font=self.listFont, anchor="nw"))
-        self.infoList.append(self.create_text(130, 430, text="- Your shot cooldown will get shorter", font=self.listFont, anchor="nw"))
-        self.infoList.append(self.create_text(130, 460, text="- You will get 1 extra life", font=self.listFont, anchor="nw"))
-        self.infoList.append(self.create_text(130, 490, text="- You get some free score points", font=self.listFont, anchor="nw"))
+        self.infoList.append(self.create_text(120, 360, text="And you will get one of the following:", font=self.listSmallHeaderFont, anchor="nw"))
+        self.infoList.append(self.create_text(130, 400, text="- 1 extra Life", font=self.listFont, anchor="nw"))
+        self.infoList.append(self.create_text(130, 430, text="- Some free score points", font=self.listFont, anchor="nw"))
         self.infoList.append(self.create_text(WIDTH / 2, HEIGHT - BORDER * 2, text="Press <space> to start the game", font=self.startGameFont))
         self.bind_all("<space>", self.startGame)
 
@@ -76,11 +74,9 @@ class Board(Canvas):
         self.level = 1
         self.health = 3
         self.xhealth = 0
-        self.alienSpawnCount = 1
+        self.alienSpawnCount = 12
         self.spawnDelay = 30
         self.shootCooldown = 0
-        self.extraCooldown = 0
-        self.extraShotSpeed = 0
         self.bind_all("<a>", self.moveLeft)
         self.bind_all("<d>", self.moveRight)
         self.bind_all("<space>", self.shoot)
@@ -135,12 +131,13 @@ class Board(Canvas):
         remShotList = []
         remAlienList = []
         remHealthList = []
+        remxHealthList = []
 
         # Check if aliens reached the bottom of the pitch/the spaceship
         if len(self.alienList) > 0:
             if self.gety(self.alienList[0].id) + self.alienList[0].sizey >= self.gety(self.spaceship):
-                if len(self.find_withtag("xhealth")) > 0:
-                    remHealthList.append(self.find_withtag("xhealth" + str(self.xhealth)))
+                if len(self.find_withtag("xhealth1")) > 0:
+                    remxHealthList.append(self.find_withtag("xhealth" + str(self.xhealth)))
                 else:
                     remHealthList.append(self.find_withtag("health" + str(self.health)))
                 remAlienList.append(self.alienList[0])
@@ -190,7 +187,7 @@ class Board(Canvas):
                             if y in shipy:
                                 remShotList.append(shot)
                                 if len(self.find_withtag("xhealth1")) > 0:
-                                    remHealthList.append(self.find_withtag("xhealth" + str(self.xhealth)))
+                                    remxHealthList.append(self.find_withtag("xhealth" + str(self.xhealth)))
                                 else:
                                     remHealthList.append(self.find_withtag("health" + str(self.health)))
 
@@ -206,11 +203,17 @@ class Board(Canvas):
             remShotList = set(remShotList)
             self.remShots(remShotList)
 
-        # If any health objs werde added to the remList, remHealth method is
+        # If any health objs were added to the remList, remHealth method is
         # called to remove them
         if len(remHealthList) > 0:
             remHealthList = set(remHealthList)
             self.remHealth(remHealthList)
+
+        # I fany extra health objs were added to the remList, remxHealth method
+        # is called to remove them
+        if len(remxHealthList) > 0:
+            remxHealthList = set(remxHealthList)
+            self.remxHealth(remxHealthList)
 
     # Method to remove all the shots in remList
     def remShots(self, remList):
@@ -232,6 +235,11 @@ class Board(Canvas):
         for item in remList:
             self.delete(item)
             self.health -= 1
+
+    # Method to remove the extra health. Does not affect health var
+    def remxHealth(self, remList):
+        for item in remList:
+            self.delete(item)
 
     # Method called by the timer. Moves all the moving objs on the pitch around
     def doMove(self):
@@ -263,9 +271,9 @@ class Board(Canvas):
         if rand == 1:
             if len(self.alienList) > 0:
                 randAlien = self.alienList[randint(0, len(self.alienList) - 1)]
-                shotPosx = self.getx(randAlien.id) + (randAlien.sizex / 2) - 2
+                shotPosx = self.getx(randAlien.id) + (randAlien.sizex / 2) - 3
                 shotPosy = self.gety(randAlien.id) + randAlien.sizey
-                self.shotList.append(Shot(shotPosx, 4, 4, 0, 4, self.create_rectangle(shotPosx, shotPosy, shotPosx + 4, shotPosy + 4, width=1, tag="alienShot", fill="red")))
+                self.shotList.append(Shot(shotPosx, 7, 6, 0, 4, self.create_rectangle(shotPosx, shotPosy, shotPosx + 6, shotPosy + 7, width=1, tag="alienShot", fill="red")))
 
     # Event method for player movement with the spaceship
     def moveRight(self, e):
@@ -281,8 +289,8 @@ class Board(Canvas):
     def shoot(self, e):
         if self.shootCooldown == 0:
             shotPos = self.getx(self.spaceship) + SHIPSIZE / 2
-            self.shotList.append(Shot(shotPos, 4, 10, 0, -20 + self.extraShotSpeed, self.create_rectangle(shotPos - 2, HEIGHT - SHIPSIZE, shotPos + 2, HEIGHT - SHIPSIZE - 10, width=0, fill="blue", tag="SpaceShipShot")))
-            self.shootCooldown = 50 + self.extraCooldown
+            self.shotList.append(Shot(shotPos, 4, 10, 0, -20, self.create_rectangle(shotPos - 2, HEIGHT - SHIPSIZE, shotPos + 2, HEIGHT - SHIPSIZE - 10, width=0, fill="blue", tag="SpaceShipShot")))
+            self.shootCooldown = 50
 
     # Method to easily get the x cords of an obj
     def getx(self, id):
@@ -296,6 +304,7 @@ class Board(Canvas):
     # so calls the onTimer method again after DELAY.
     # If the player has no health left, the game ends and the game over screen appears.
     def checkHealth(self):
+
         if not self.health > 0:
             self.gameoverfont = tkFont.Font(size="70")
             self.create_rectangle(BORDER, HEIGHT / 2 - (BORDER * 3), WIDTH - BORDER, HEIGHT / 2 + BORDER, fill="white", tag="gameOverBg", width=0)
@@ -320,28 +329,16 @@ class Board(Canvas):
             self.delete(item)
 
     def randLevelUpEffect(self):
-        randNum = randint(1, 4)
+        randNum = randint(1, 2)
         popText = ""
         if randNum == 1:
-            if self.extraCooldown > -40:
-                self.extraCooldown -= 15
-                popText = "Shorter Cooldown"
-            else:
-                self.randLevelUpEffect()
-        elif randNum == 2:
-            if self.extraShotSpeed < -10:
-                self.extraShotSpeed -= 5
-                popText = "Faster Shots"
-            else:
-                self.randLevelUpEffect()
-        elif randNum == 3:
             if self.xhealth < 4:
                 self.xhealth += 1
                 self.menu.append(self.create_image(WIDTH - (25 * 5 + (25 * self.xhealth)), 6, image=self.xhealthimg, tag="xhealth" + str(self.xhealth), anchor="nw"))
                 popText = "Extra Life"
             else:
                 self.randLevelUpEffect()
-        elif randNum == 4:
+        elif randNum == 2:
             self.score += 10 * self.level
             self.itemconfigure(self.find_withtag("score"), text=self.score)
             popText = "Free Points"
@@ -365,7 +362,7 @@ class Board(Canvas):
                     self.health += 1
                     self.menu.append(self.create_image(WIDTH - (25 * self.health), 6, image=self.healthimg, tag="health" + str(self.health), anchor="nw"))
                 self.itemconfigure(self.find_withtag("level"), text=self.level)
-                self.alienSpawnCount = (self.level * 1)
+                self.alienSpawnCount = (12 + (self.level * 6))
                 self.randLevelUpEffect()
         else:
             self.spawnDelay -= 1
