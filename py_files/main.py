@@ -8,6 +8,8 @@ from PIL import ImageTk
 
 from alien import Alien
 
+from bomber import Bomber
+
 from shot import Shot
 
 from drop import Drop
@@ -80,6 +82,7 @@ class Board(Canvas):
         self.xhealth = 0
         self.alienSpawnCount = 12
         self.spawnDelay = 30
+        self.bomberRespawnDelay = 200
         self.shootCooldown = 0
         self.bind_all("<a>", self.moveLeft)
         self.bind_all("<d>", self.moveRight)
@@ -94,16 +97,26 @@ class Board(Canvas):
         xhealthimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/xheart.png")
         empty_heartimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/heart_empty.png")
         alienGreen = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/green.png")
+        greenDestroyimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/green_destroy.png")
         shipimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/space_ship.png")
         bgimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/bg.png")
         dropimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/crate.png")
+        bomberimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/bomber.png")
+        bombershotimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/bombershot.png")
+        bomberDestroyimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/bomber_destroy.png")
+        explosion = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/explosion.png")
         self.healthimg = healthimg
         self.xhealthimg = xhealthimg
         self.empty_heartimg = empty_heartimg
         self.alienGreen = alienGreen
+        self.alienGreenDes = greenDestroyimg
         self.shipimg = shipimg
         self.bgimg = bgimg
         self.dropimg = dropimg
+        self.bomberimg = bomberimg
+        self.bombershotimg = bombershotimg
+        self.bomberDes = bomberDestroyimg
+        self.explosion = explosion
 
         # Create background images
         self.bg = []
@@ -114,6 +127,7 @@ class Board(Canvas):
         self.menu = []
         self.menuFont = tkFont.Font(size="20", family="Helvetica")
 
+        # Display the menu bar and add all the items to the menu list
         self.menu.append(self.create_rectangle(0, 0, WIDTH, MENUBARSIZE, width=0, fill="grey", tag="menuBar"))
         self.menu.append(self.create_text(5, 5, text="Score: ", anchor="nw", font=self.menuFont, tag="scoreLabel"))
         self.menu.append(self.create_text(self.getx(self.find_withtag("scoreLabel")) + 65, 5, text=str(self.score), anchor="nw", font=self.menuFont, tag="score"))
@@ -130,16 +144,20 @@ class Board(Canvas):
         self.alienList = []
         self.shotList = []
         self.dropList = []
+        self.bomber = ""
 
     # Check collision between all relevant objects on the field
     def checkCollision(self):
         # Lists for elements that collided. Lists get forwarded to remove methods
-        # at the end of checkCollision. This avoids index errors in the object lists
+        # at the end of checkCollision. This avoids index errors in the object lists.
+        # Lists are used because one obj can get hit multiple times in a tick,
+        # by using the set method of lists duplicates can be removed.
         remShotList = []
         remAlienList = []
         remHealthList = []
         remxHealthList = []
         remDropList = []
+        remBomberList = []
 
         # Check if drop has reached the bottom of the pitch.
         # Also check if the drop has collided with the ship
@@ -164,21 +182,18 @@ class Board(Canvas):
                     remHealthList.append(self.find_withtag("health" + str(self.health)))
                 remAlienList.append(self.alienList[0])
 
-        # Check if aliens reached the border of the pitch and if so make them go down and turn
-        for alien in self.alienList:
-            if self.getx(alien.id) == WIDTH - BORDER - alien.sizex or (self.getx(alien.id) == BORDER and self.gety(alien.id) > MENUBARSIZE + MENUGAP + 1):
-                if alien.movex >= 2 or alien.movex <= -2:
-                    alien.move_down()
-                else:
-                    alien.move_rev()
-
-            if self.getx(alien.id) == WIDTH - BORDER - 20 or (self.getx(alien.id) == BORDER - 20 and self.gety(alien.id) > MENUBARSIZE + MENUGAP + 1):
-                alien.move_down_rev()
-
         # Check collisions for all the shots currently on the pitch
         for shot in self.shotList:
+            if shot.id in self.find_withtag("bomberShot"):
+                if self.gety(shot.id) >= HEIGHT - 20 - shot.sizey:
+                    remShotList.append(shot)
+                    self.create_image(self.getx(shot.id) + (shot.sizex / 2), self.gety(shot.id) - 10, image=self.explosion, tag="explosion")
+                    self.after(300, self.remExplosion)
+                    for shipy in range(int(self.getx(self.spaceship)), int(self.getx(self.spaceship) + SHIPSIZE)):
+                        if shipy in range(int(self.getx(shot.id) - 50), int(self.getx(shot.id) + 50)):
+                            remHealthList.append(self.find_withtag("health" + str(self.health)))
 
-            # Check if shots any shots reached the end of the pitch.
+            # Check if any shots reached the end of the pitch.
             # If so, append them to the remList to remove them
             shotx = range(int(self.getx(shot.id)), int(self.getx(shot.id)) + shot.sizex)
             shoty = range(int(self.gety(shot.id)), int(self.gety(shot.id)) + shot.sizey)
@@ -187,7 +202,19 @@ class Board(Canvas):
 
             # Check for all player shots if they hit an alien.
             # If so, add the alien & the shot to the remList to remove them
-            if shot.id not in self.find_withtag("alienShot"):
+            if shot.id not in self.find_withtag("alienShot") and shot.id not in self.find_withtag("bomberShot"):
+                # Check if shots collided with the bomber alien
+                if len(self.find_withtag("bomber")) > 0:
+                    bomberx = range(int(self.getx(self.bomber.id)), int(self.getx(self.bomber.id) + self.bomber.sizex))
+                    bombery = range(int(self.gety(self.bomber.id)), int(self.gety(self.bomber.id) + self.bomber.sizey))
+                    for y in shoty:
+                        if y in bombery:
+                            for x in shotx:
+                                if x in bomberx:
+                                    remShotList.append(shot)
+                                    remBomberList.append(self.bomber)
+
+                # Check if the shots collided with the green aliens
                 for alien in self.alienList:
                     alienx = range(int(self.getx(alien.id)), int(self.getx(alien.id) + alien.sizex + 1))
                     alieny = range(int(self.gety(alien.id)), int(self.gety(alien.id) + alien.sizey + 1))
@@ -231,15 +258,23 @@ class Board(Canvas):
             remHealthList = set(remHealthList)
             self.remHealth(remHealthList)
 
-        # I fany extra health objs were added to the remList, remxHealth method
+        # If any extra health objs were added to the remList, remxHealth method
         # is called to remove them
         if len(remxHealthList) > 0:
             remxHealthList = set(remxHealthList)
             self.remxHealth(remxHealthList)
 
+        # If any Drops collided with the player, they get removed from the pitch
+        # by calling the remDrop method
         if len(remDropList) > 0:
             remDropList = set(remDropList)
             self.remDrop(remDropList)
+
+        # If the bomber was hitted, the obj is added to the remList and then
+        # removed by calling remBomber
+        if len(remBomberList) > 0:
+            remBomberList = set(remBomberList)
+            self.remBomber(remBomberList)
 
     # Method to remove all the shots in remList
     def remShots(self, remList):
@@ -247,14 +282,36 @@ class Board(Canvas):
             del self.shotList[self.shotList.index(item)]
             self.delete(item.id)
 
+    # If the bomber shot hits the ground the explosion image is displayed
+    def bomberShotExplode(self, shot):
+        self.create_image(self.getx(shot.id) + (shot.sizex / 2), self.gety(shot.id) - 10, image=self.explosion, tag="explosion")
+        self.after(300, self.remExplosion)
+        for shipy in range(int(self.getx(self.spaceship)), int(self.getx(self.spaceship) + SHIPSIZE)):
+            print shipy
+            if shipy in range(int(self.getx(shot.id) - 50), int(self.getx(shot.id) + 50)):
+                print "HIT"
+
+    # Method to remove the explosion image from the pitch
+    def remExplosion(self):
+        for item in self.find_withtag("explosion"):
+            self.delete(item)
+
     # Method to remove all the aliens in remList
     # For each removed alien the score gets added up and updated on the board
+    # Adds a destroy image to the canvas removes it by a delayed call to remDesImg
     def remAlien(self, remList):
         for item in remList:
+            self.create_image(self.getx(item.id), self.gety(item.id), image=self.alienGreenDes, anchor="nw", tag="desImg")
+            self.after(100, self.remDesImg)
             del self.alienList[self.alienList.index(item)]
             self.delete(item.id)
             self.score += 1
             self.itemconfigure(self.find_withtag("score"), text=self.score)
+
+    # Method to remove all the images of destroyed aliens on the pitch
+    def remDesImg(self):
+        for item in self.find_withtag("desImg"):
+            self.delete(item)
 
     # Method to remove all the health in remList
     def remHealth(self, remList):
@@ -268,14 +325,51 @@ class Board(Canvas):
             self.delete(item)
             self.xhealth -= 1
 
+    # Method to remove the drops that collided from the pitch
     def remDrop(self, remList):
         for item in remList:
             del self.dropList[self.dropList.index(item)]
             self.delete(item.id)
             self.randUpgrade()
 
+    # Method to remove the bomber from the pitch if he has been hitted
+    def remBomber(self, remList):
+        for item in remList:
+            self.create_image(self.getx(item.id), self.gety(item.id), image=self.bomberDes, anchor="nw", tag="desBombImg")
+            self.after(100, self.remDesBombImg)
+            self.bomber = ""
+            self.delete(item.id)
+            self.score += 5
+            self.itemconfigure(self.find_withtag("score"), text=self.score)
+            self.bomberRespawnDelay = 1200
+
+    # Method to remove the destroy image of the bomber, gets called after
+    # a set delay form remBomber
+    def remDesBombImg(self):
+        for item in self.find_withtag("desBombImg"):
+            self.delete(item)
+
     # Method called by the timer. Moves all the moving objs on the pitch around
     def doMove(self):
+        # Check if aliens reached the border of the pitch and if so make them go down and turn
+        for alien in self.alienList:
+            if self.getx(alien.id) == WIDTH - BORDER - alien.sizex or (self.getx(alien.id) == BORDER and self.gety(alien.id) > MENUBARSIZE + MENUGAP + 1):
+                if alien.movex >= 2 or alien.movex <= -2:
+                    alien.move_down()
+                else:
+                    alien.move_rev()
+
+            if self.getx(alien.id) == WIDTH - BORDER - 20 or (self.getx(alien.id) == BORDER - 20 and self.gety(alien.id) > MENUBARSIZE + MENUGAP + 1):
+                alien.move_down_rev()
+
+        # Check if the bomber has reached the end of the pitch, if so
+        # make him move the other way
+        if len(self.find_withtag("bomber")) > 0:
+            if self.getx(self.bomber.id) == WIDTH - BORDER - self.bomber.sizex or (self.getx(self.bomber.id) == BORDER and self.bomber.movex < 0):
+                self.bomber.move_rev()
+
+            self.move(self.bomber.id, self.bomber.movex, self.bomber.movey)
+
         # Move all the aliens on the pitch according to their movement directions
         for alien in self.alienList:
             self.move(alien.id, alien.movex, alien.movey)
@@ -305,12 +399,17 @@ class Board(Canvas):
         # Get ranom number to decide if aliens shoot in this tick.
         # The higher the level the smaller the range for the random number
         rand = randint(1, int(100 / (self.level * 2)))
+        # if randint is one, a random alien shoots
         if rand == 1:
             if len(self.alienList) > 0:
                 randAlien = self.alienList[randint(0, len(self.alienList) - 1)]
                 shotPosx = self.getx(randAlien.id) + (randAlien.sizex / 2) - 3
                 shotPosy = self.gety(randAlien.id) + randAlien.sizey
-                self.shotList.append(Shot(shotPosx, 7, 6, 0, 4, self.create_rectangle(shotPosx, shotPosy, shotPosx + 6, shotPosy + 7, width=1, tag="alienShot", fill="red")))
+                self.shotList.append(Shot(7, 6, 0, 4, self.create_rectangle(shotPosx, shotPosy, shotPosx + 6, shotPosy + 7, width=1, tag="alienShot", fill="red")))
+        # if randint is two, the bomber shoots, but only if there is no shot
+        # on the pitch yet
+        elif rand == 2 and len(self.find_withtag("bomber")) > 0 and len(self.find_withtag("bomberShot")) == 0 and self.getx(self.bomber.id) > BORDER:
+            self.shotList.append(Shot(12, 12, 0, 3, self.create_image(self.getx(self.bomber.id) + (self.bomber.sizex / 2), self.gety(self.bomber.id) + self.bomber.sizey, image=self.bombershotimg, tag="bomberShot", anchor="nw")))
 
     # Event method for player movement with the spaceship
     def moveRight(self, e):
@@ -326,7 +425,7 @@ class Board(Canvas):
     def shoot(self, e):
         if self.shootCooldown == 0:
             shotPos = self.getx(self.spaceship) + SHIPSIZE / 2
-            self.shotList.append(Shot(shotPos, 4, 10, 0, -20, self.create_rectangle(shotPos - 2, HEIGHT - SHIPSIZE, shotPos + 2, HEIGHT - SHIPSIZE - 10, width=0, fill="blue", tag="SpaceShipShot")))
+            self.shotList.append(Shot(4, 10, 0, -20, self.create_rectangle(shotPos - 2, HEIGHT - SHIPSIZE, shotPos + 2, HEIGHT - SHIPSIZE - 10, width=0, fill="blue", tag="SpaceShipShot")))
             self.shootCooldown = 50
 
     # Method to easily get the x cords of an obj
@@ -372,7 +471,7 @@ class Board(Canvas):
         for item in self.find_withtag("popUp"):
             self.delete(item)
 
-    # Method to create a small popup message at the location of the spacehship.
+    # Method to create a small popup message at the location of the spaceship.
     # Message gets automatically removed by calling remShipPopUp method
     def shipPopUp(self, text):
         self.remShipPopUp()
@@ -417,7 +516,7 @@ class Board(Canvas):
                 self.alienList.append(Alien(44, 32, 2, 0, self.create_image(-40, MENUBARSIZE + MENUGAP, image=self.alienGreen, tag="alien", anchor="nw")))
                 self.alienSpawnCount -= 1
 
-            # If there are no aliens left and all the spawned aliens have already
+            # If there are no aliens left to spawn and all the spawned aliens have already
             # been removed/destroyed then the next level gets initialized.
             if self.alienSpawnCount == 0 and len(self.find_withtag("alien")) == 0:
                 self.level += 1
@@ -427,13 +526,22 @@ class Board(Canvas):
                 self.itemconfigure(self.find_withtag("level"), text=self.level)
                 self.alienSpawnCount = (12 + (self.level * 6))
                 self.popUpText("Level " + str(self.level))
-                # self.randUpgrade()
-        else:
+        elif self.spawnDelay > 0:
             self.spawnDelay -= 1
+
+        # Spawn bomber after a set delay after destruction of the previuos bomber
+        if not len(self.find_withtag("bomber")) > 0 and self.bomberRespawnDelay == 0:
+            self.spawnBomber()
+        elif self.bomberRespawnDelay > 0:
+            self.bomberRespawnDelay -= 1
+
+    # Method to add the bomber to the pitch
+    def spawnBomber(self):
+        self.bomber = Bomber(64, 28, 1, 0, self.create_image(-64, MENUBARSIZE + 20, image=self.bomberimg, tag="bomber", anchor="nw"))
 
     # Randomly spawns drops
     def spawnDrop(self):
-        if randint(1, 500) == 1:
+        if randint(1, 2500) == 1:
             randx = randint(10, WIDTH - 30)
             self.dropList.append(Drop(20, 20, 0, 5, self.create_image(randx, MENUBARSIZE, image=self.dropimg, anchor="nw", tag="drop")))
 
