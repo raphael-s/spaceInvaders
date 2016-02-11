@@ -191,7 +191,10 @@ class Board(Canvas):
                     self.after(300, self.remExplosion)
                     for shipy in range(int(self.getx(self.spaceship)), int(self.getx(self.spaceship) + SHIPSIZE)):
                         if shipy in range(int(self.getx(shot.id) - 50), int(self.getx(shot.id) + 50)):
-                            remHealthList.append(self.find_withtag("health" + str(self.health)))
+                            if self.xhealth > 0:
+                                remxHealthList.append(self.find_withtag("xhealth" + str(self.xhealth)))
+                            else:
+                                remHealthList.append(self.find_withtag("health" + str(self.health)))
 
             # Check if any shots reached the end of the pitch.
             # If so, append them to the remList to remove them
@@ -301,11 +304,12 @@ class Board(Canvas):
     # Adds a destroy image to the canvas removes it by a delayed call to remDesImg
     def remAlien(self, remList):
         for item in remList:
+            self.alienScorePopup("+20", item)
             self.create_image(self.getx(item.id), self.gety(item.id), image=self.alienGreenDes, anchor="nw", tag="desImg")
             self.after(100, self.remDesImg)
             del self.alienList[self.alienList.index(item)]
             self.delete(item.id)
-            self.score += 1
+            self.score += 20
             self.itemconfigure(self.find_withtag("score"), text=self.score)
 
     # Method to remove all the images of destroyed aliens on the pitch
@@ -335,13 +339,14 @@ class Board(Canvas):
     # Method to remove the bomber from the pitch if he has been hitted
     def remBomber(self, remList):
         for item in remList:
+            self.alienScorePopup("+50", item)
             self.create_image(self.getx(item.id), self.gety(item.id), image=self.bomberDes, anchor="nw", tag="desBombImg")
             self.after(100, self.remDesBombImg)
             self.bomber = ""
             self.delete(item.id)
-            self.score += 5
+            self.score += 50
             self.itemconfigure(self.find_withtag("score"), text=self.score)
-            self.bomberRespawnDelay = 1200
+            self.bomberRespawnDelay = 1000
 
     # Method to remove the destroy image of the bomber, gets called after
     # a set delay form remBomber
@@ -353,8 +358,8 @@ class Board(Canvas):
     def doMove(self):
         # Check if aliens reached the border of the pitch and if so make them go down and turn
         for alien in self.alienList:
-            if self.getx(alien.id) == WIDTH - BORDER - alien.sizex or (self.getx(alien.id) == BORDER and self.gety(alien.id) > MENUBARSIZE + MENUGAP + 1):
-                if alien.movex >= 2 or alien.movex <= -2:
+            if self.getx(alien.id) == WIDTH - BORDER - alien.sizex + 2 or (self.getx(alien.id) == BORDER + 2 and self.gety(alien.id) > MENUBARSIZE + MENUGAP + 1):
+                if alien.movex == 4 or alien.movex == -4:
                     alien.move_down()
                 else:
                     alien.move_rev()
@@ -408,7 +413,7 @@ class Board(Canvas):
                 self.shotList.append(Shot(7, 6, 0, 4, self.create_rectangle(shotPosx, shotPosy, shotPosx + 6, shotPosy + 7, width=1, tag="alienShot", fill="red")))
         # if randint is two, the bomber shoots, but only if there is no shot
         # on the pitch yet
-        elif rand == 2 and len(self.find_withtag("bomber")) > 0 and len(self.find_withtag("bomberShot")) == 0 and self.getx(self.bomber.id) > BORDER:
+        elif rand == 2 and len(self.find_withtag("bomber")) > 0 and len(self.find_withtag("bomberShot")) <= 1 and self.getx(self.bomber.id) > BORDER:
             self.shotList.append(Shot(12, 12, 0, 3, self.create_image(self.getx(self.bomber.id) + (self.bomber.sizex / 2), self.gety(self.bomber.id) + self.bomber.sizey, image=self.bombershotimg, tag="bomberShot", anchor="nw")))
 
     # Event method for player movement with the spaceship
@@ -426,7 +431,7 @@ class Board(Canvas):
         if self.shootCooldown == 0:
             shotPos = self.getx(self.spaceship) + SHIPSIZE / 2
             self.shotList.append(Shot(4, 10, 0, -20, self.create_rectangle(shotPos - 2, HEIGHT - SHIPSIZE, shotPos + 2, HEIGHT - SHIPSIZE - 10, width=0, fill="blue", tag="SpaceShipShot")))
-            self.shootCooldown = 50
+            self.shootCooldown = 25
 
     # Method to easily get the x cords of an obj
     def getx(self, id):
@@ -471,6 +476,18 @@ class Board(Canvas):
         for item in self.find_withtag("popUp"):
             self.delete(item)
 
+    # Creates a popup dialog box at the position of an alien.
+    # Used to show +score points
+    def alienScorePopup(self, text, alien):
+        self.create_rectangle(self.getx(alien.id) + alien.sizex + 5, self.gety(alien.id) - 5, self.getx(alien.id) + alien.sizex + 40, self.gety(alien.id) + 20, fill="white", width=0, tag="scorePopup")
+        self.create_text(self.getx(alien.id) + alien.sizex + 10, self.gety(alien.id), text=text, anchor="nw", tag="scorePopup")
+        self.after(400, self.remScorePopup)
+
+    # Removes all score popup boxes currently on the pitch
+    def remScorePopup(self):
+        for item in self.find_withtag("scorePopup"):
+            self.delete(item)
+
     # Method to create a small popup message at the location of the spaceship.
     # Message gets automatically removed by calling remShipPopUp method
     def shipPopUp(self, text):
@@ -511,9 +528,9 @@ class Board(Canvas):
     def spawnAliens(self):
         # Each tick the spawnDelay gets set a bit lower, if it reaches 0, a new alien spawns
         if self.spawnDelay == 0:
-            self.spawnDelay = 35
+            self.spawnDelay = 20
             if self.alienSpawnCount > 0:
-                self.alienList.append(Alien(44, 32, 2, 0, self.create_image(-40, MENUBARSIZE + MENUGAP, image=self.alienGreen, tag="alien", anchor="nw")))
+                self.alienList.append(Alien(44, 32, 4, 0, self.create_image(-40, MENUBARSIZE + MENUGAP, image=self.alienGreen, tag="alien", anchor="nw")))
                 self.alienSpawnCount -= 1
 
             # If there are no aliens left to spawn and all the spawned aliens have already
@@ -568,7 +585,11 @@ def main():
     root = Tk()
     root.title("Space Invaders")
     Game()
-    root.mainloop()
+    try:
+        root.mainloop()
+    except KeyboardInterrupt:
+        print ""
+        print "Program stopped by KeyboardInterrupt"
 
 # Executes the main method
 if __name__ == '__main__':
