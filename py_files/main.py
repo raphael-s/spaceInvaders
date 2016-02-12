@@ -1,3 +1,8 @@
+# Space Invaders
+# 
+# Author:   Raphael S.
+# Date:     12.2.2016
+
 import os
 
 from Tkinter import Canvas, Frame, Tk
@@ -296,9 +301,6 @@ class Board(Canvas):
     def bomberShotExplode(self, shot):
         self.create_image(self.getx(shot.id) + (shot.sizex / 2), self.gety(shot.id) - 10, image=self.explosion_img, tag="explosion")
         self.after(300, self.remExplosion)
-        for shipy in range(int(self.getx(self.spaceship)), int(self.getx(self.spaceship) + SHIPSIZE)):
-            if shipy in range(int(self.getx(shot.id) - 50), int(self.getx(shot.id) + 50)):
-                print "HIT"
 
     # Method to remove the explosion image from the pitch
     def remExplosion(self):
@@ -495,6 +497,7 @@ class Board(Canvas):
             self.doShoot()
             self.timer = self.after(DELAY, self.onTimer)
 
+    # Method to get accuracy of played game. Called on game over
     def getAccuracy(self):
         if self.accShots > 0:
             return int(100 * float(self.accHits)/float(self.accShots))
