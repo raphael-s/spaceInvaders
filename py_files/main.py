@@ -99,6 +99,8 @@ class Board(Canvas):
         alienGreen = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/green.png")
         greenDestroyimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/green_destroy.png")
         shipimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/space_ship.png")
+        ship_hitimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/space_ship_hit.png")
+        ship_desimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/space_ship_des.png")
         bgimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/bg.png")
         dropimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/crate.png")
         bomberimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/bomber.png")
@@ -111,6 +113,8 @@ class Board(Canvas):
         self.alienGreen = alienGreen
         self.alienGreenDes = greenDestroyimg
         self.shipimg = shipimg
+        self.ship_hitimg = ship_hitimg
+        self.ship_desimg = ship_desimg
         self.bgimg = bgimg
         self.dropimg = dropimg
         self.bomberimg = bomberimg
@@ -318,10 +322,30 @@ class Board(Canvas):
             self.delete(item)
 
     # Method to remove all the health in remList
+    # Calls method to let the ship "blink" red
     def remHealth(self, remList):
         for item in remList:
             self.delete(item)
             self.health -= 1
+            if self.health > 0:
+                self.repeatHit = True
+                self.shipHit()
+            else:
+                self.itemconfigure(self.spaceship, image=self.ship_desimg)
+
+    # Method gets called if ship is hit. Sets a red ship img that is
+    # then removed again by remShipHit
+    def shipHit(self):
+        self.itemconfigure(self.spaceship, image=self.ship_hitimg)
+        self.after(300, self.remShipHit)
+
+    # Removes the red ship image and sets it to the blue one again.
+    # Gets called 2 times, the first time it calls shipHit again to make the ship "blink"
+    def remShipHit(self):
+        self.itemconfigure(self.spaceship, image=self.shipimg)
+        if self.repeatHit:
+            self.repeatHit = False
+            self.after(300, self.shipHit)
 
     # Method to remove the extra health. Does not affect health var
     def remxHealth(self, remList):
