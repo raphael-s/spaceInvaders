@@ -107,7 +107,8 @@ class Board(Canvas):
         self.alienSpawnCount = 12
         self.spawnDelay = 30
         self.bomberRespawnDelay = 200
-        self.shootCooldown = 0
+        self.overheatTime = 0
+        self.cooldown = 0
         self.bomberCooldown = 0
         self.accHits = 0
         self.accShots = 0
@@ -164,6 +165,7 @@ class Board(Canvas):
         self.menu.append(self.create_text(self.getx(self.find_withtag("scoreLabel")) + 65, 5, text=str(self.score), anchor="nw", font=self.menuFont, tag="score"))
         self.menu.append(self.create_text(205, 5, text="Level: ", anchor="nw", font=self.menuFont, tag="levelLabel"))
         self.menu.append(self.create_text(self.getx(self.find_withtag("levelLabel")) + 63, 5, text=str(self.level), anchor="nw", font=self.menuFont, tag="level"))
+        self.menu.append(self.create_rectangle(WIDTH / 2 - 101, MENUBARSIZE + 1, WIDTH / 2 + 101, MENUBARSIZE + 13, fill="grey", width=1, tag="cooldownBarMenu"))
         for j in range(5):
             self.menu.append(self.create_image(WIDTH - (25 * (j + 1)), 6, image=self.empty_heart_img, tag="empty_heart", anchor="nw"))
         for i in range(self.health):
@@ -187,6 +189,7 @@ class Board(Canvas):
         self.checkHealth()
         self.checkCollision()
         self.doMove()
+        self.drawCooldownBar()
         self.spawnAliens()
         self.spawnDrop()
 
@@ -269,6 +272,9 @@ class Board(Canvas):
             shoty = range(int(self.gety(shot.id)), int(self.gety(shot.id)) + shot.sizey)
             if self.gety(shot.id) <= MENUBARSIZE or self.gety(shot.id) >= HEIGHT:
                 remShotList.append(shot)
+            if self.getx(shot.id) >= WIDTH / 2 - 99 and self.getx(shot.id) <= WIDTH / 2 + 101:
+                if self.gety(shot.id) <= MENUBARSIZE + 16:
+                    remShotList.append(shot)
 
             # Check for all player shots if they hit an alien.
             # If so, add the alien & the shot to the remList to remove them
@@ -387,9 +393,18 @@ class Board(Canvas):
         for drop in self.dropList:
             self.move(drop.id, drop.movex, drop.movey)
 
-        # Reduce shoot cooldown for spaceship by every tick
-        if self.shootCooldown > 0:
-            self.shootCooldown -= 1
+    # Method to draw the cooldown bar at the to of the pitch.
+    def drawCooldownBar(self):
+        if self.cooldown > 0 and self.overheatTime == 0:
+            self.cooldown -= 2
+        if self.overheatTime > 0:
+            self.overheatTime -= 1
+            if self.overheatTime == 0:
+                self.cooldown = 100
+        self.create_rectangle(WIDTH / 2 - 99, MENUBARSIZE + 3, WIDTH / 2 - 99 + self.cooldown, MENUBARSIZE + 12, fill="red", width=0, tag="cooldownBar1")
+        for item in self.find_withtag("cooldownBar2"):
+            self.delete(item)
+        self.itemconfigure(self.find_withtag("cooldownBar1"), tag="cooldownBar2")
 
     # Method to add new aliens to the board.
     def spawnAliens(self):
@@ -454,11 +469,14 @@ class Board(Canvas):
 
     # Event method for player shooting with the spaceship
     def shoot(self, e):
-        if self.shootCooldown == 0:
+        if self.overheatTime == 0:
             shotPos = self.getx(self.spaceship) + SHIPSIZE / 2
             self.shotList.append(Shot(4, 10, 0, -20, self.create_rectangle(shotPos - 2, HEIGHT - SHIPSIZE, shotPos + 2, HEIGHT - SHIPSIZE - 10, width=0, fill="blue", tag="SpaceShipShot")))
-            self.shootCooldown = 25
             self.accShots += 1
+            self.cooldown += 60
+            if self.cooldown >= 200:
+                self.cooldown = 199
+                self.overheatTime = 70
 
 #
 # -------------------- CHECKHEALTH METHODS --------------------
@@ -680,6 +698,7 @@ class Board(Canvas):
 #
 # -------------------- FRAME CLASS AND WINDOW SETTINGS --------------------
 #
+
 
 # Main class of game. Creates new canvas from class Board
 class Game(Frame):
