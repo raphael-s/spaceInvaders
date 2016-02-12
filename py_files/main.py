@@ -45,8 +45,8 @@ class Board(Canvas):
     # Shows an info text about the level system before game starts
     def initInfoScreen(self):
         self.infoList = []
-        green_bigimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/green_big.png")
-        self.green_bigimg = green_bigimg
+        green_big_img = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/green_big.png")
+        self.green_big_img = green_big_img
         self.titleFont = tkFont.Font(size="60")
         self.smallTitleFont = tkFont.Font(size="40")
         self.listHeaderFont = tkFont.Font(size="25")
@@ -64,7 +64,7 @@ class Board(Canvas):
         self.infoList.append(self.create_text(130, 400, text="- 1 extra Life", font=self.listFont, anchor="nw"))
         self.infoList.append(self.create_text(130, 430, text="- Some free score points", font=self.listFont, anchor="nw"))
         self.infoList.append(self.create_text(WIDTH / 2, HEIGHT - BORDER * 2, text="Press <space> to start the game", font=self.startGameFont))
-        self.infoList.append(self.create_image(WIDTH / 2, 540, image=self.green_bigimg))
+        self.infoList.append(self.create_image(WIDTH / 2, 540, image=self.green_big_img))
         self.bind_all("<space>", self.startGame)
 
     # Gets called by user pressing space on info screen. Initializes the game
@@ -84,6 +84,9 @@ class Board(Canvas):
         self.spawnDelay = 30
         self.bomberRespawnDelay = 200
         self.shootCooldown = 0
+        self.bomberCooldown = 0
+        self.accHits = 0
+        self.accShots = 0
         self.bind_all("<a>", self.moveLeft)
         self.bind_all("<d>", self.moveRight)
         self.bind_all("<space>", self.shoot)
@@ -93,39 +96,39 @@ class Board(Canvas):
     # Adds all the objects to the board, including menu bar and spaceship.
     def initObj(self):
         # Import all the images and save them to a reference var
-        healthimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/heart.png")
-        xhealthimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/xheart.png")
-        empty_heartimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/heart_empty.png")
-        alienGreen = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/green.png")
-        greenDestroyimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/green_destroy.png")
-        shipimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/space_ship.png")
-        ship_hitimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/space_ship_hit.png")
-        ship_desimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/space_ship_des.png")
-        bgimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/bg.png")
-        dropimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/crate.png")
-        bomberimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/bomber.png")
-        bombershotimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/bombershot.png")
-        bomberDestroyimg = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/bomber_destroy.png")
-        explosion = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/explosion.png")
-        self.healthimg = healthimg
-        self.xhealthimg = xhealthimg
-        self.empty_heartimg = empty_heartimg
-        self.alienGreen = alienGreen
-        self.alienGreenDes = greenDestroyimg
-        self.shipimg = shipimg
-        self.ship_hitimg = ship_hitimg
-        self.ship_desimg = ship_desimg
-        self.bgimg = bgimg
-        self.dropimg = dropimg
-        self.bomberimg = bomberimg
-        self.bombershotimg = bombershotimg
-        self.bomberDes = bomberDestroyimg
-        self.explosion = explosion
+        health_img = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/heart.png")
+        xhealth_img = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/xheart.png")
+        empty_heart_img = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/heart_empty.png")
+        alien_green_img = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/green.png")
+        alien_green_des_img = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/green_destroy.png")
+        ship_img = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/space_ship.png")
+        ship_hit_img = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/space_ship_hit.png")
+        ship_des_img = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/space_ship_des.png")
+        bg_img = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/bg.png")
+        drop_img = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/crate.png")
+        bomber_img = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/bomber.png")
+        bomber_shot_img = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/bombershot.png")
+        bomber_des_img = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/bomber_destroy.png")
+        explosion_img = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/explosion.png")
+        self.health_img = health_img
+        self.xhealth_img = xhealth_img
+        self.empty_heart_img = empty_heart_img
+        self.alien_green_img = alien_green_img
+        self.alien_green_des_img = alien_green_des_img
+        self.ship_img = ship_img
+        self.ship_hit_img = ship_hit_img
+        self.ship_des_img = ship_des_img
+        self.bg_img = bg_img
+        self.drop_img = drop_img
+        self.bomber_img = bomber_img
+        self.bomber_shot_img = bomber_shot_img
+        self.bomber_des_img = bomber_des_img
+        self.explosion_img = explosion_img
 
         # Create background images
         self.bg = []
-        self.bg.append(self.create_image(0, -50, image=self.bgimg, anchor="nw", tag="bg1"))
-        self.bg.append(self.create_image(0, -850, image=self.bgimg, anchor="nw", tag="bg2"))
+        self.bg.append(self.create_image(0, -50, image=self.bg_img, anchor="nw", tag="bg1"))
+        self.bg.append(self.create_image(0, -850, image=self.bg_img, anchor="nw", tag="bg2"))
 
         # Add menu bar and all of its elements to the board
         self.menu = []
@@ -138,13 +141,13 @@ class Board(Canvas):
         self.menu.append(self.create_text(205, 5, text="Level: ", anchor="nw", font=self.menuFont, tag="levelLabel"))
         self.menu.append(self.create_text(self.getx(self.find_withtag("levelLabel")) + 63, 5, text=str(self.level), anchor="nw", font=self.menuFont, tag="level"))
         for j in range(5):
-            self.menu.append(self.create_image(WIDTH - (25 * (j + 1)), 6, image=self.empty_heartimg, tag="empty_heart", anchor="nw"))
+            self.menu.append(self.create_image(WIDTH - (25 * (j + 1)), 6, image=self.empty_heart_img, tag="empty_heart", anchor="nw"))
         for i in range(self.health):
             count = i + 1
-            self.menu.append(self.create_image(WIDTH - (25 * count), 6, image=self.healthimg, tag="health" + str(count), anchor="nw"))
+            self.menu.append(self.create_image(WIDTH - (25 * count), 6, image=self.health_img, tag="health" + str(count), anchor="nw"))
 
         # Add spaceship to board and init lists for aliens & shots
-        self.spaceship = self.create_image(WIDTH / 2 - SHIPSIZE / 2, HEIGHT - SHIPSIZE - 20, image=self.shipimg, anchor="nw")
+        self.spaceship = self.create_image(WIDTH / 2 - SHIPSIZE / 2, HEIGHT - SHIPSIZE - 20, image=self.ship_img, anchor="nw")
         self.alienList = []
         self.shotList = []
         self.dropList = []
@@ -191,7 +194,7 @@ class Board(Canvas):
             if shot.id in self.find_withtag("bomberShot"):
                 if self.gety(shot.id) >= HEIGHT - 20 - shot.sizey:
                     remShotList.append(shot)
-                    self.create_image(self.getx(shot.id) + (shot.sizex / 2), self.gety(shot.id) - 10, image=self.explosion, tag="explosion")
+                    self.create_image(self.getx(shot.id) + (shot.sizex / 2), self.gety(shot.id) - 10, image=self.explosion_img, tag="explosion")
                     self.after(300, self.remExplosion)
                     for shipy in range(int(self.getx(self.spaceship)), int(self.getx(self.spaceship) + SHIPSIZE)):
                         if shipy in range(int(self.getx(shot.id) - 50), int(self.getx(shot.id) + 50)):
@@ -291,10 +294,9 @@ class Board(Canvas):
 
     # If the bomber shot hits the ground the explosion image is displayed
     def bomberShotExplode(self, shot):
-        self.create_image(self.getx(shot.id) + (shot.sizex / 2), self.gety(shot.id) - 10, image=self.explosion, tag="explosion")
+        self.create_image(self.getx(shot.id) + (shot.sizex / 2), self.gety(shot.id) - 10, image=self.explosion_img, tag="explosion")
         self.after(300, self.remExplosion)
         for shipy in range(int(self.getx(self.spaceship)), int(self.getx(self.spaceship) + SHIPSIZE)):
-            print shipy
             if shipy in range(int(self.getx(shot.id) - 50), int(self.getx(shot.id) + 50)):
                 print "HIT"
 
@@ -309,11 +311,12 @@ class Board(Canvas):
     def remAlien(self, remList):
         for item in remList:
             self.alienScorePopup("+20", item)
-            self.create_image(self.getx(item.id), self.gety(item.id), image=self.alienGreenDes, anchor="nw", tag="desImg")
+            self.create_image(self.getx(item.id), self.gety(item.id), image=self.alien_green_des_img, anchor="nw", tag="desImg")
             self.after(100, self.remDesImg)
             del self.alienList[self.alienList.index(item)]
             self.delete(item.id)
             self.score += 20
+            self.accHits += 1
             self.itemconfigure(self.find_withtag("score"), text=self.score)
 
     # Method to remove all the images of destroyed aliens on the pitch
@@ -331,18 +334,18 @@ class Board(Canvas):
                 self.repeatHit = True
                 self.shipHit()
             else:
-                self.itemconfigure(self.spaceship, image=self.ship_desimg)
+                self.itemconfigure(self.spaceship, image=self.ship_des_img)
 
     # Method gets called if ship is hit. Sets a red ship img that is
     # then removed again by remShipHit
     def shipHit(self):
-        self.itemconfigure(self.spaceship, image=self.ship_hitimg)
+        self.itemconfigure(self.spaceship, image=self.ship_hit_img)
         self.after(300, self.remShipHit)
 
     # Removes the red ship image and sets it to the blue one again.
     # Gets called 2 times, the first time it calls shipHit again to make the ship "blink"
     def remShipHit(self):
-        self.itemconfigure(self.spaceship, image=self.shipimg)
+        self.itemconfigure(self.spaceship, image=self.ship_img)
         if self.repeatHit:
             self.repeatHit = False
             self.after(300, self.shipHit)
@@ -364,11 +367,12 @@ class Board(Canvas):
     def remBomber(self, remList):
         for item in remList:
             self.alienScorePopup("+50", item)
-            self.create_image(self.getx(item.id), self.gety(item.id), image=self.bomberDes, anchor="nw", tag="desBombImg")
+            self.create_image(self.getx(item.id), self.gety(item.id), image=self.bomber_des_img, anchor="nw", tag="desBombImg")
             self.after(100, self.remDesBombImg)
             self.bomber = ""
             self.delete(item.id)
             self.score += 50
+            self.accHits += 1
             self.itemconfigure(self.find_withtag("score"), text=self.score)
             self.bomberRespawnDelay = 1000
 
@@ -437,8 +441,11 @@ class Board(Canvas):
                 self.shotList.append(Shot(7, 6, 0, 4, self.create_rectangle(shotPosx, shotPosy, shotPosx + 6, shotPosy + 7, width=1, tag="alienShot", fill="red")))
         # if randint is two, the bomber shoots, but only if there is no shot
         # on the pitch yet
-        elif rand == 2 and len(self.find_withtag("bomber")) > 0 and len(self.find_withtag("bomberShot")) <= 1 and self.getx(self.bomber.id) > BORDER:
-            self.shotList.append(Shot(12, 12, 0, 3, self.create_image(self.getx(self.bomber.id) + (self.bomber.sizex / 2), self.gety(self.bomber.id) + self.bomber.sizey, image=self.bombershotimg, tag="bomberShot", anchor="nw")))
+        elif rand == 2 and len(self.find_withtag("bomber")) > 0 and len(self.find_withtag("bomberShot")) <= 1 and self.getx(self.bomber.id) > BORDER and self.bomberCooldown == 0:
+            self.shotList.append(Shot(12, 12, 0, 3, self.create_image(self.getx(self.bomber.id) + (self.bomber.sizex / 2), self.gety(self.bomber.id) + self.bomber.sizey, image=self.bomber_shot_img, tag="bomberShot", anchor="nw")))
+            self.bomberCooldown = 100
+        elif self.bomberCooldown > 0:
+            self.bomberCooldown -= 1
 
     # Event method for player movement with the spaceship
     def moveRight(self, e):
@@ -456,6 +463,7 @@ class Board(Canvas):
             shotPos = self.getx(self.spaceship) + SHIPSIZE / 2
             self.shotList.append(Shot(4, 10, 0, -20, self.create_rectangle(shotPos - 2, HEIGHT - SHIPSIZE, shotPos + 2, HEIGHT - SHIPSIZE - 10, width=0, fill="blue", tag="SpaceShipShot")))
             self.shootCooldown = 25
+            self.accShots += 1
 
     # Method to easily get the x cords of an obj
     def getx(self, id):
@@ -471,10 +479,12 @@ class Board(Canvas):
     def checkHealth(self):
         if not self.health > 0:
             self.gameoverfont = tkFont.Font(size="70")
+            self.gameoversmallfont = tkFont.Font(size="40")
             self.restartfont = tkFont.Font(size="35")
-            self.create_rectangle(BORDER, HEIGHT / 2 - (BORDER * 3), WIDTH - BORDER, HEIGHT / 2 + BORDER, fill="white", tag="gameOverBg", width=0)
+            self.create_rectangle(BORDER, HEIGHT / 2 - (BORDER * 3), WIDTH - BORDER, HEIGHT / 2 + (BORDER * 2), fill="white", tag="gameOverBg", width=0)
             self.create_text(WIDTH / 2, HEIGHT / 2 - (BORDER * 2), text="Game Over", font=self.gameoverfont, tag="gameOverText")
-            self.create_text(WIDTH / 2, HEIGHT / 2, text="Score: " + str(self.score), font=self.gameoverfont, tag="finalScore")
+            self.create_text(WIDTH / 2, HEIGHT / 2, text="Score: " + str(self.score), font=self.gameoversmallfont, tag="finalScore")
+            self.create_text(WIDTH / 2, HEIGHT / 2 + BORDER, text="Accuracy: " + str(self.getAccuracy()) + "%", font=self.gameoversmallfont, tag="accuracy")
             self.create_rectangle(BORDER, HEIGHT - (BORDER * 2), WIDTH - BORDER, HEIGHT - BORDER, fill="white", tag="startNewGame", width=0)
             self.create_text(WIDTH / 2, HEIGHT - 75, text="Press <space> to restart", font=self.restartfont, tag="restartGameText")
             self.unbind_all("<a>")
@@ -484,6 +494,12 @@ class Board(Canvas):
         else:
             self.doShoot()
             self.timer = self.after(DELAY, self.onTimer)
+
+    def getAccuracy(self):
+        if self.accShots > 0:
+            return int(100 * float(self.accHits)/float(self.accShots))
+        else:
+            return "0"
 
     # Method that creates a popup display that is then removed again by
     # calling remPopUp.
@@ -537,7 +553,7 @@ class Board(Canvas):
         if randNum == 1:
             if self.xhealth < 3:
                 self.xhealth += 1
-                self.menu.append(self.create_image(WIDTH - (25 * 5 + (25 * self.xhealth)), 6, image=self.xhealthimg, tag="xhealth" + str(self.xhealth), anchor="nw"))
+                self.menu.append(self.create_image(WIDTH - (25 * 5 + (25 * self.xhealth)), 6, image=self.xhealth_img, tag="xhealth" + str(self.xhealth), anchor="nw"))
                 popText = "+1 Life"
             else:
                 self.randUpgrade()
@@ -554,7 +570,7 @@ class Board(Canvas):
         if self.spawnDelay == 0:
             self.spawnDelay = 20
             if self.alienSpawnCount > 0:
-                self.alienList.append(Alien(44, 32, 4, 0, self.create_image(-40, MENUBARSIZE + MENUGAP, image=self.alienGreen, tag="alien", anchor="nw")))
+                self.alienList.append(Alien(44, 32, 4, 0, self.create_image(-40, MENUBARSIZE + MENUGAP, image=self.alien_green_img, tag="alien", anchor="nw")))
                 self.alienSpawnCount -= 1
 
             # If there are no aliens left to spawn and all the spawned aliens have already
@@ -563,7 +579,7 @@ class Board(Canvas):
                 self.level += 1
                 if self.health < 5:
                     self.health += 1
-                    self.menu.append(self.create_image(WIDTH - (25 * self.health), 6, image=self.healthimg, tag="health" + str(self.health), anchor="nw"))
+                    self.menu.append(self.create_image(WIDTH - (25 * self.health), 6, image=self.health_img, tag="health" + str(self.health), anchor="nw"))
                 self.itemconfigure(self.find_withtag("level"), text=self.level)
                 self.alienSpawnCount = (12 + (self.level * 6))
                 self.popUpText("Level " + str(self.level))
@@ -578,13 +594,14 @@ class Board(Canvas):
 
     # Method to add the bomber to the pitch
     def spawnBomber(self):
-        self.bomber = Bomber(64, 28, 1, 0, self.create_image(-64, MENUBARSIZE + 20, image=self.bomberimg, tag="bomber", anchor="nw"))
+        self.bomber = Bomber(64, 28, 1, 0, self.create_image(-64, MENUBARSIZE + 20, image=self.bomber_img, tag="bomber", anchor="nw"))
+        self.bomberCooldown = 100
 
     # Randomly spawns drops
     def spawnDrop(self):
         if randint(1, 2500) == 1:
             randx = randint(10, WIDTH - 30)
-            self.dropList.append(Drop(20, 20, 0, 5, self.create_image(randx, MENUBARSIZE, image=self.dropimg, anchor="nw", tag="drop")))
+            self.dropList.append(Drop(20, 20, 0, 5, self.create_image(randx, MENUBARSIZE, image=self.drop_img, anchor="nw", tag="drop")))
 
     # Timer method, always gets called again after DELAY from checkHealth method
     # until the game has finished
