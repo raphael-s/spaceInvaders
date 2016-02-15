@@ -213,6 +213,7 @@ class Board(Canvas):
             self.unbind_all("<a>")
             self.unbind_all("<d>")
             self.unbind_all("<space>")
+            self.unbind_all("<p>")
             self.bind_all("<space>", self.startGame)
         elif not self.pause:
             self.doShoot()
