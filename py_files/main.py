@@ -72,23 +72,23 @@ class Board(Canvas):
         green_big_img = ImageTk.PhotoImage(file=ROOT_DIR + "/gfx/green_big.png")
         self.green_big_img = green_big_img
         self.titleFont = tkFont.Font(size="60")
-        self.smallTitleFont = tkFont.Font(size="40")
         self.listHeaderFont = tkFont.Font(size="25")
         self.listSmallHeaderFont = tkFont.Font(size="21")
         self.listFont = tkFont.Font(size="18")
         self.startGameFont = tkFont.Font(size="30")
         self.infoList.append(self.create_rectangle(0, 0, WIDTH, HEIGHT, width=0, fill="grey", tag="infoBg"))
         self.infoList.append(self.create_text(WIDTH / 2, BORDER, text="Space Invaders", font=self.titleFont))
-        self.infoList.append(self.create_text(WIDTH / 2, BORDER * 3, text="Info about Levels:", font=self.smallTitleFont))
-        self.infoList.append(self.create_text(120, BORDER * 4, text="For each finished Level:", font=self.listHeaderFont, anchor="nw"))
-        self.infoList.append(self.create_text(130, 250, text="- The amount of aliens will double", font=self.listFont, anchor="nw"))
-        self.infoList.append(self.create_text(130, 280, text="- The aliens will shoot more", font=self.listFont, anchor="nw"))
-        self.infoList.append(self.create_text(130, 310, text="- You will get 1 extra life", font=self.listFont, anchor="nw"))
-        self.infoList.append(self.create_text(120, 360, text="And you will get one of the following:", font=self.listSmallHeaderFont, anchor="nw"))
-        self.infoList.append(self.create_text(130, 400, text="- 1 extra Life", font=self.listFont, anchor="nw"))
-        self.infoList.append(self.create_text(130, 430, text="- Some free score points", font=self.listFont, anchor="nw"))
-        self.infoList.append(self.create_text(WIDTH / 2, HEIGHT - BORDER * 2, text="Press <space> to start the game", font=self.startGameFont))
-        self.infoList.append(self.create_image(WIDTH / 2, 540, image=self.green_big_img))
+        self.infoList.append(self.create_text(120, 150, text="Controls:", font=self.listHeaderFont, anchor="nw"))
+        self.infoList.append(self.create_text(130, 200, text="- <a> to move left", font=self.listFont, anchor="nw"))
+        self.infoList.append(self.create_text(130, 230, text="- <d> to move right", font=self.listFont, anchor="nw"))
+        self.infoList.append(self.create_text(130, 260, text="- <space> to shoot", font=self.listFont, anchor="nw"))
+        self.infoList.append(self.create_text(130, 290, text="- <p> to pause", font=self.listFont, anchor="nw"))
+        self.infoList.append(self.create_text(120, 340, text="For each finished Level:", font=self.listHeaderFont, anchor="nw"))
+        self.infoList.append(self.create_text(130, 390, text="- The amount of aliens will double", font=self.listFont, anchor="nw"))
+        self.infoList.append(self.create_text(130, 420, text="- The aliens will shoot more", font=self.listFont, anchor="nw"))
+        self.infoList.append(self.create_text(130, 450, text="- You will get 1 extra life", font=self.listFont, anchor="nw"))
+        self.infoList.append(self.create_text(WIDTH / 2, 700, text="Press <space> to start the game", font=self.startGameFont))
+        self.infoList.append(self.create_image(WIDTH / 2, 610, image=self.green_big_img))
         self.bind_all("<space>", self.startGame)
 
     # Gets called by user pressing space on info screen. Initializes the game
@@ -100,6 +100,7 @@ class Board(Canvas):
     # Init vars for the game and bind the keys.
     # Calls the initObj function to init all objects to the board
     def initGame(self):
+        self.pause = False
         self.score = 0
         self.level = 1
         self.health = 3
@@ -115,6 +116,7 @@ class Board(Canvas):
         self.bind_all("<a>", self.moveLeft)
         self.bind_all("<d>", self.moveRight)
         self.bind_all("<space>", self.shoot)
+        self.bind_all("<p>", self.togglePause)
         self.initObj()
         self.after(DELAY, self.onTimer)
 
@@ -212,7 +214,7 @@ class Board(Canvas):
             self.unbind_all("<d>")
             self.unbind_all("<space>")
             self.bind_all("<space>", self.startGame)
-        else:
+        elif not self.pause:
             self.doShoot()
             self.timer = self.after(DELAY, self.onTimer)
 
@@ -477,6 +479,18 @@ class Board(Canvas):
             if self.cooldown >= 200:
                 self.cooldown = 199
                 self.overheatTime = 70
+
+    def togglePause(self, e):
+        if self.pause:
+            self.pause = False
+            for item in self.find_withtag("pauseMenu"):
+                self.delete(item)
+            self.checkHealth()
+        else:
+            self.pause = True
+            self.pauseFont = tkFont.Font(size="90")
+            self.create_rectangle(WIDTH / 2 - 150, 300, WIDTH / 2 + 150, 400, fill="white", width=0, tag="pauseMenu")
+            self.create_text(WIDTH / 2 - 120, 300, text="Pause", font=self.pauseFont, tag="pauseMenu", anchor="nw")
 
 #
 # -------------------- CHECKHEALTH METHODS --------------------
